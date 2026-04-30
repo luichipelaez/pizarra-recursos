@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUICHI PELAEZ BOARD</title>
+    <script src="https://unpkg.com/fabric@5.3.0/dist/fabric.min.js"></script>
+    
+    <style>
+        :root { --bg-dark: #1a1a1a; --panel: #2d2d2d; --accent: #007bff; }
+        body { display: flex; margin: 0; font-family: 'Arial Black', Gadget, sans-serif; background: var(--bg-dark); color: white; height: 100vh; overflow: hidden; }
+        
+        .toolbar { width: 300px; background: var(--panel); padding: 15px; display: flex; flex-direction: column; gap: 8px; border-right: 1px solid #444; overflow-y: auto; }
+        .canvas-container-wrapper { flex-grow: 1; display: flex; justify-content: center; align-items: center; background: #222; }
+        
+        .main-title {
+            line-height: 0.85; font-size: 32px; font-weight: 900; text-transform: uppercase; margin: 0 0 15px 0;
+            background: linear-gradient(135deg, #007bff, #00e5ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px;
+        }
+
+        h3 { font-family: 'Segoe UI', sans-serif; font-size: 11px; color: #888; text-transform: uppercase; margin: 12px 0 4px; border-bottom: 1px solid #444; padding-bottom: 3px; }
+        button { font-family: 'Segoe UI', sans-serif; padding: 8px 12px; cursor: pointer; background: #444; color: white; border: none; border-radius: 4px; font-size: 13px; transition: 0.2s; text-align: left; }
+        button:hover { background: #555; }
+        button.active { background: var(--accent) !important; font-weight: bold; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .grid-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+        
+        .color-dot { height: 30px; border-radius: 4px; border: 1px solid #666; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+        .color-picker-input { width: 100%; height: 30px; padding: 0; border: 1px solid #666; border-radius: 4px; cursor: pointer; background: transparent; }
+        
+        .btn-real { padding: 4px; text-align: center; font-size: 10px; font-weight: bold; height: 30px; line-height: 22px;}
+        .btn-delete { background: #c62828; text-align: center; margin-top: 5px; font-weight: bold; }
+        .btn-export { background: #28a745; text-align: center; margin-top: 15px; font-weight: bold; }
+        
+        select { font-family: 'Segoe UI', sans-serif; padding: 8px; background: #444; color: white; border: none; border-radius: 4px; width: 100%; }
+        .instr { font-family: 'Segoe UI', sans-serif; font-size: 10px; color: #777; font-style: italic; margin-top: 5px; }
+        
+        .check-container { font-family: 'Segoe UI', sans-serif; font-size: 12px; display: flex; align-items: center; gap: 8px; background: #3d3d3d; padding: 8px; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="toolbar">
+    <div class="main-title">LUICHI<br>PELAEZ<br>BOARD</div>
+    
+    <h3>0. Seleccionar Campo</h3>
+    <select onchange="updateBg(this.value)">
+        <option value="">Elegir fondo...</option>
+        <option value="full">Campo Entero</option>
+        <option value="half">Medio Campo</option>
+        <option value="noline">Sin Líneas</option>
+        <option value="f7">Fútbol 7</option>
+    </select>
+
+    <h3>1. Modo de Control</h3>
+    <button id="btn-select" onclick="setTool('select')" class="active">🖐️ Mover / Seleccionar</button>
+    <div class="instr">Atajos: 'Supr' borrar. 'Ctrl+C' / 'Ctrl+V' copiar. Doble clic en ficha para editar dorsal.</div>
+
+    <h3>2. Herramientas de Dibujo</h3>
+    <label class="check-container">
+        <input type="checkbox" id="check-dashed"> Trazado Discontinuo (---)
+    </label>
+
+    <div class="grid-2">
+        <button id="btn-free" onclick="setTool('free')">✏️ Mano alzada</button>
+        <button id="btn-line" onclick="setTool('line')">📏 Línea Recta</button>
+        <button id="btn-arrow" onclick="setTool('arrow')">↗️ Flecha</button>
+        <button id="btn-text" onclick="setTool('text')">🔤 Texto</button>
+        <button id="btn-rect" onclick="setTool('rect')">🟦 Rectángulo</button>
+        <button id="btn-circle" onclick="setTool('circle')">⭕ Círculo</button>
+    </div>
+
+    <h3>3. Grosor y Texto</h3>
+    <div class="grid-2" style="margin-bottom: 5px;">
+        <button id="w-1" onclick="setWeight(1)">1px (Fino)</button>
+        <button id="w-3" onclick="setWeight(3)" class="active">3px (Normal)</button>
+    </div>
+    <div class="grid-2">
+        <select id="font-family" onchange="updateSelectedText()" title="Tipo de Letra">
+            <option value="Arial Black">Arial Black</option>
+            <option value="Arial">Arial Standard</option>
+            <option value="Courier New">Courier (Máquina)</option>
+            <option value="Impact">Impact</option>
+        </select>
+        <select id="font-size" onchange="updateSelectedText()" title="Tamaño de Letra">
+            <option value="16">16px</option>
+            <option value="20">20px</option>
+            <option value="24" selected>24px</option>
+            <option value="32">32px</option>
+            <option value="40">40px</option>
+        </select>
+    </div>
+    
+    <h3>4. Color de Tiza / Texto</h3>
+    <div class="grid-6">
+        <div class="color-dot" style="background: white;" onclick="changeColor('white')"></div>
+        <div class="color-dot" style="background: yellow;" onclick="changeColor('yellow')"></div>
+        <div class="color-dot" style="background: #ff4444;" onclick="changeColor('#ff4444')"></div>
+        <div class="color-dot" style="background: black;" onclick="changeColor('black')"></div>
+        <div class="color-dot" style="background: #00e5ff;" onclick="changeColor('#00e5ff')"></div>
+        <input type="color" class="color-picker-input" onchange="changeColor(this.value)">
+    </div>
+
+    <h3>5. Jugadores (Fichas / Realistas)</h3>
+    <div class="grid-6">
+        <div class="color-dot" style="background:#1565c0" onclick="addPlayer('#1565c0')">AZ</div>
+        <div class="color-dot" style="background:#c62828" onclick="addPlayer('#c62828')">RO</div>
+        <div class="color-dot" style="background:#fbc02d; color:black" onclick="addPlayer('#fbc02d')">AM</div>
+        <div class="color-dot" style="background:#2e7d32" onclick="addPlayer('#2e7d32')">VE</div>
+        <div class="color-dot" style="background:#f5f5f5; color:black" onclick="addPlayer('#f5f5f5')">BL</div>
+        <input type="color" class="color-picker-input" onchange="addPlayer(this.value)">
+    </div>
+    <div class="grid-6" style="margin-top: 5px;">
+        <button class="btn-real" style="background:#1565c0;" onclick="addRealPlayer('p_azul')">P-AZ</button>
+        <button class="btn-real" style="background:#c62828;" onclick="addRealPlayer('p_rojo')">P-RO</button>
+        <button class="btn-real" style="background:#fbc02d; color:black;" onclick="addRealPlayer('p_amarillo')">P-AM</button>
+        <button class="btn-real" style="background:#2e7d32;" onclick="addRealPlayer('p_verde')">P-VE</button>
+        <button class="btn-real" style="background:#f5f5f5; color:black;" onclick="addRealPlayer('p_blanco')">P-BL</button>
+        <button class="btn-real" style="background:#ff6d00;" onclick="addRealPlayer('p_naranja')">P-NA</button>
+    </div>
+
+    <h3>6. Materiales</h3>
+    <div class="grid-2">
+        <button onclick="addIcon('cone')">⚠️ Cono</button>
+        <button onclick="addIcon('ball')">⚽ Balón</button>
+        <button onclick="addIcon('porteria')">🥅 Portería</button>
+        <button onclick="addIcon('valla')">🚧 Valla</button>
+        <button onclick="addIcon('seta')">🍄 Seta</button>
+        <button onclick="addIcon('escalera')">🪜 Escalera</button>
+        <button onclick="addIcon('pica')">📍 Pica Alta</button>
+        <button onclick="addIcon('muneco')">👤 Muñeco</button>
+        <button onclick="addIcon('aro')">⭕ Aro</button>
+        <button onclick="addIcon('saco')">🎒 Saco Bal.</button>
+    </div>
+
+    <button onclick="exportImage()" class="btn-export">💾 EXPORTAR IMAGEN</button>
+    <button onclick="resetCanvas()" class="btn-delete">🗑️ LIMPIAR TODO</button>
+</div>
+
+<div class="canvas-container-wrapper">
+    <canvas id="tacticBoard" width="950" height="650"></canvas>
+</div>
+
+<script>
+var canvas, tool = 'select', isDown, activeObj, color = 'black', strokeWidth = 3, _clipboard = null;
+var origX, origY;
+
+window.onload = function() {
+    canvas = new fabric.Canvas('tacticBoard', { backgroundColor: '#2e7d32', preserveObjectStacking: true });
+
+    // --- EVENTOS DE RATÓN (DIBUJO GEOMÉTRICO Y TEXTO) ---
+    canvas.on('mouse:down', function(o) {
+        if (tool === 'select' || tool === 'free') return;
+        
+        var pointer = canvas.getPointer(o.e);
+
+        if (tool === 'text') {
+            var textObj = new fabric.IText('Escribe aquí', {
+                left: pointer.x, top: pointer.y, fill: color,
+                fontFamily: document.getElementById('font-family').value,
+                fontSize: parseInt(document.getElementById('font-size').value),
+            });
+            canvas.add(textObj);
+            canvas.setActiveObject(textObj);
+            textObj.enterEditing();
+            textObj.selectAll();
+            setTool('select');
+            return;
+        }
+
+        isDown = true;
+        origX = pointer.x;
+        origY = pointer.y;
+        var isDashed = document.getElementById('check-dashed').checked;
+        var dashArray = isDashed ? [10, 5] : null;
+
+        if (tool === 'line' || tool === 'arrow') {
+            activeObj = new fabric.Line([origX, origY, origX, origY], {
+                strokeWidth: strokeWidth, fill: color, stroke: color, originX: 'center', originY: 'center',
+                strokeDashArray: dashArray, selectable: true
+            });
+        } else if (tool === 'rect') {
+            activeObj = new fabric.Rect({
+                left: origX, top: origY, width: 0, height: 0, fill: 'transparent',
+                stroke: color, strokeWidth: strokeWidth, strokeDashArray: dashArray, selectable: true
+            });
+        } else if (tool === 'circle') {
+            activeObj = new fabric.Circle({
+                left: origX, top: origY, radius: 0, fill: 'transparent',
+                stroke: color, strokeWidth: strokeWidth, strokeDashArray: dashArray, selectable: true
+            });
+        }
+        canvas.add(activeObj);
+    });
+
+    canvas.on('mouse:move', function(o) {
+        if (!isDown || tool === 'select' || tool === 'free' || tool === 'text') return;
+        var pointer = canvas.getPointer(o.e);
+
+        if (tool === 'line' || tool === 'arrow') {
+            activeObj.set({ x2: pointer.x, y2: pointer.y });
+        } else if (tool === 'rect') {
+            activeObj.set({ width: Math.abs(origX - pointer.x), height: Math.abs(origY - pointer.y) });
+            if(origX > pointer.x) activeObj.set({ left: pointer.x });
+            if(origY > pointer.y) activeObj.set({ top: pointer.y });
+        } else if (tool === 'circle') {
+            var radius = Math.max(Math.abs(origX - pointer.x), Math.abs(origY - pointer.y)) / 2;
+            activeObj.set({ radius: radius });
+            if(origX > pointer.x) activeObj.set({ left: pointer.x });
+            if(origY > pointer.y) activeObj.set({ top: pointer.y });
+        }
+        canvas.renderAll();
+    });
+
+    canvas.on('mouse:up', function() {
+        if (!isDown) return;
+        isDown = false;
+        if (tool === 'arrow') addArrowHead(activeObj);
+        activeObj.setCoords();
+        canvas.renderAll();
+    });
+
+    // CORRECCIÓN: Evento dblclick con la sintaxis correcta de Fabric.js
+    canvas.on('mouse:dblclick', function(o) {
+        if (o.target && o.target.type === 'group') {
+            var objs = o.target.getObjects();
+            if (objs.length === 2 && objs[0].type === 'circle' && objs[1].type === 'text') {
+                var nuevoDorsal = prompt("Cambiar dorsal:", objs[1].text);
+                if (nuevoDorsal !== null) {
+                    objs[1].set({ text: nuevoDorsal });
+                    // Forzar al grupo a recalcularse por si el texto cambia de tamaño
+                    o.target.addWithUpdate();
+                    o.target.dirty = true;
+                    canvas.renderAll();
+                }
+            }
+        }
+    });
+
+    // --- TECLADO ---
+    document.addEventListener('keydown', (e) => {
+        if (canvas.getActiveObject() && canvas.getActiveObject().isEditing) return;
+
+        if (e.key === "Delete" || e.key === "Backspace") {
+            const activeObjects = canvas.getActiveObjects();
+            canvas.remove(...activeObjects);
+            canvas.discardActiveObject().renderAll();
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+            canvas.getActiveObject()?.clone(cloned => _clipboard = cloned);
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+            if (!_clipboard) return;
+            _clipboard.clone(clonedObj => {
+                canvas.discardActiveObject();
+                clonedObj.set({ left: clonedObj.left + 20, top: clonedObj.top + 20, evented: true });
+                if (clonedObj.type === 'activeSelection') {
+                    clonedObj.canvas = canvas;
+                    clonedObj.forEachObject(obj => canvas.add(obj));
+                    clonedObj.setCoords();
+                } else { canvas.add(clonedObj); }
+                _clipboard.top += 20; _clipboard.left += 20;
+                canvas.setActiveObject(clonedObj).requestRenderAll();
+            });
+        }
+    });
+};
+
+function setTool(t) {
+    tool = t;
+    canvas.isDrawingMode = (t === 'free');
+    canvas.selection = (t === 'select');
+    
+    if(t === 'free') {
+        canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+        canvas.freeDrawingBrush.color = color;
+        canvas.freeDrawingBrush.width = strokeWidth;
+        if(document.getElementById('check-dashed').checked) {
+            canvas.freeDrawingBrush.strokeDashArray = [10, 5];
+        }
+    }
+    document.querySelectorAll('.toolbar button').forEach(b => b.id?.startsWith('btn-') && b.classList.remove('active'));
+    document.getElementById('btn-' + t)?.classList.add('active');
+}
+
+function setWeight(w) {
+    strokeWidth = w;
+    if(canvas.isDrawingMode) canvas.freeDrawingBrush.width = w;
+    document.querySelectorAll('[id^="w-"]').forEach(b => b.classList.remove('active'));
+    document.getElementById('w-' + w).classList.add('active');
+}
+
+function updateSelectedText() {
+    var activeObj = canvas.getActiveObject();
+    if (activeObj && activeObj.type === 'i-text') {
+        activeObj.set({
+            fontFamily: document.getElementById('font-family').value,
+            fontSize: parseInt(document.getElementById('font-size').value)
+        });
+        canvas.renderAll();
+    }
+}
+
+function changeColor(c) { 
+    color = c; 
+    if(canvas.isDrawingMode) canvas.freeDrawingBrush.color = c; 
+    var activeObj = canvas.getActiveObject();
+    if (activeObj && activeObj.type === 'i-text') {
+        activeObj.set({ fill: c });
+        canvas.renderAll();
+    }
+}
+
+function addArrowHead(l) {
+    var angle = Math.atan2(l.y2 - l.y1, l.x2 - l.x1);
+    var head = new fabric.Triangle({
+        left: l.x2, top: l.y2, angle: (angle * 180 / Math.PI) + 90,
+        width: 15, height: 15, fill: color, originX: 'center', originY: 'center',
+        strokeDashArray: l.strokeDashArray 
+    });
+    var group = new fabric.Group([l, head], { selectable: true });
+    canvas.remove(l).add(group);
+}
+
+function addPlayer(c) {
+    var n = prompt("Dorsal:", "1");
+    if (n === null) return;
+    var circle = new fabric.Circle({ radius: 10, fill: c, stroke: 'white', strokeWidth: 1.5, originX: 'center', originY: 'center' });
+    var text = new fabric.Text(n, { fontSize: 12, fill: (c === '#f5f5f5' || c === 'white') ? 'black' : 'white', originX: 'center', originY: 'center', fontWeight: 'bold', fontFamily: 'Arial' });
+    canvas.add(new fabric.Group([circle, text], { left: 50, top: 50 }));
+    setTool('select');
+}
+
+function addRealPlayer(imgName) {
+    fabric.Image.fromURL(imgName + '.png', (img, isError) => {
+        if (isError) return alert("Error al cargar " + imgName + ".png");
+        img.scale(0.18);
+        canvas.add(img).centerObject(img);
+        setTool('select');
+    });
+}
+
+function addIcon(name) {
+    fabric.Image.fromURL(name + '.png', (img, isError) => {
+        if (isError) return alert("Falta: " + name + ".png");
+        img.scale(0.12);
+        canvas.add(img).centerObject(img);
+        setTool('select');
+    });
+}
+
+// CORRECCIÓN: Imágenes ahora en .jpg
+function updateBg(t) {
+    if (!t) return;
+    const bgMap = { 'full': 'campo_entero.jpg', 'half': 'medio_campo.jpg', 'noline': 'campo_sin_lineas.jpg', 'f7': 'futbol7.jpg' };
+    fabric.Image.fromURL(bgMap[t], img => {
+        canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), { scaleX: canvas.width / img.width, scaleY: canvas.height / img.height });
+    });
+}
+
+function resetCanvas() { if(confirm("¿Borrar todo?")) { canvas.clear().setBackgroundColor('#2e7d32', canvas.renderAll.bind(canvas)); } }
+
+function exportImage() {
+    try {
+        var link = document.createElement('a');
+        link.download = 'pizarra_luichi_' + Date.now() + '.png';
+        link.href = canvas.toDataURL({ format: 'png', multiplier: 2 });
+        link.click();
+    } catch (e) { alert("Error de seguridad (CORS). Usa Firefox o Live Server."); }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUICHI PELAEZ BOARD</title>
+    <script src="https://unpkg.com/fabric@5.3.0/dist/fabric.min.js"></script>
+    
+    <style>
+        /* CUSTOM: Colores principales de la interfaz web */
+        :root { --bg-dark: #1a1a1a; --panel: #2d2d2d; --accent: #007bff; }
+        body { display: flex; margin: 0; font-family: 'Arial Black', Gadget, sans-serif; background: var(--bg-dark); color: white; height: 100vh; overflow: hidden; }
+        
+        /* CUSTOM: Ancho del panel izquierdo (actual: 380px) */
+        .toolbar { width: 380px; background: var(--panel); padding: 15px; display: flex; flex-direction: column; gap: 8px; border-right: 1px solid #444; overflow-y: auto; transition: 0.3s; }
+        .canvas-container-wrapper { flex-grow: 1; display: flex; justify-content: center; align-items: center; background: #222; position: relative; }
+        
+        /* CUSTOM: Estilos para el Modo Vestuario */
+        body.locker-room .toolbar { width: 0; padding: 0; overflow: hidden; border: none; }
+        .exit-locker { position: absolute; top: 10px; right: 10px; display: none; z-index: 100; background: rgba(0,0,0,0.5); }
+        body.locker-room .exit-locker { display: block; }
+
+        /* CUSTOM: Estilos del título superior */
+        .main-title {
+            line-height: 0.85; font-size: 32px; font-weight: 900; text-transform: uppercase; margin: 0 0 15px 0;
+            background: linear-gradient(135deg, #007bff, #00e5ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px;
+        }
+
+        h3 { font-family: 'Segoe UI', sans-serif; font-size: 11px; color: #888; text-transform: uppercase; margin: 12px 0 4px; border-bottom: 1px solid #444; padding-bottom: 3px; }
+        button { font-family: 'Segoe UI', sans-serif; padding: 8px 12px; cursor: pointer; background: #444; color: white; border: none; border-radius: 4px; font-size: 13px; transition: 0.2s; text-align: left; }
+        button:hover { background: #555; }
+        button.active { background: var(--accent) !important; font-weight: bold; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+        .grid-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+        
+        .color-dot { height: 30px; border-radius: 4px; border: 1px solid #666; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+        .color-picker-input { width: 100%; height: 30px; padding: 0; border: 1px solid #666; border-radius: 4px; cursor: pointer; background: transparent; }
+        
+        /* CUSTOM: Estilo de las miniaturas de los jugadores realistas en el panel lateral */
+        .img-player { width: 100%; height: 35px; object-fit: contain; cursor: pointer; background: #444; border-radius: 4px; padding: 2px; border: 1px solid transparent; transition: 0.2s;}
+        .img-player:hover { background: #666; border-color: white; }
+
+        .btn-delete { background: #c62828; text-align: center; margin-top: 5px; font-weight: bold; }
+        .btn-export { background: #28a745; text-align: center; margin-top: 15px; font-weight: bold; }
+        
+        select { font-family: 'Segoe UI', sans-serif; padding: 8px; background: #444; color: white; border: none; border-radius: 4px; width: 100%; }
+        .instr { font-family: 'Segoe UI', sans-serif; font-size: 10px; color: #777; font-style: italic; margin-top: 5px; }
+        
+        .check-container { font-family: 'Segoe UI', sans-serif; font-size: 12px; display: flex; align-items: center; gap: 8px; background: #3d3d3d; padding: 8px; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="toolbar">
+    <div class="main-title">LUICHI<br>PELAEZ<br>BOARD</div>
+    
+    <h3>0. Seleccionar Campo</h3>
+    <select onchange="updateBg(this.value)">
+        <option value="">Elegir fondo...</option>
+        <option value="full">Campo Entero</option>
+        <option value="half">Medio Campo</option>
+        <option value="noline">Sin Líneas</option>
+        <option value="f7">Fútbol 7</option>
+    </select>
+
+    <h3>1. Modo de Control</h3>
+    <button id="btn-select" onclick="setTool('select')" class="active">🖐️ Mover / Seleccionar</button>
+    <div class="instr">Atajos: 'Supr' borrar. 'Ctrl+C/V' copiar. 'Enter/Esc' cierra Zona.</div>
+
+    <h3>2. Herramientas de Dibujo</h3>
+    <label class="check-container">
+        <input type="checkbox" id="check-dashed"> Trazado Discontinuo (---)
+    </label>
+
+    <div class="grid-2">
+        <button id="btn-free" onclick="setTool('free')">✏️ Mano alzada</button>
+        <button id="btn-free-arrow" onclick="setTool('free-arrow')">✏️↗️ Mano + Flecha</button>
+        <button id="btn-line" onclick="setTool('line')">📏 Línea Recta</button>
+        <button id="btn-arrow" onclick="setTool('arrow')">↗️ Flecha</button>
+        <button id="btn-polygon" onclick="setTool('polygon')">🛑 Zona (Puntos)</button>
+        <button id="btn-zone-free" onclick="setTool('zone-free')">☁️ Zona (Libre)</button>
+        <button id="btn-rect" onclick="setTool('rect')">🟦 Rectángulo</button>
+        <button id="btn-circle" onclick="setTool('circle')">⭕ Círculo</button>
+        <button id="btn-text" onclick="setTool('text')" style="grid-column: span 2; text-align: center;">🔤 Texto</button>
+    </div>
+
+    <h3>3. Grosor y Texto</h3>
+    <div class="grid-4" style="margin-bottom: 5px;">
+        <button id="w-1" onclick="setWeight(1)" style="text-align: center;">1px</button>
+        <button id="w-3" onclick="setWeight(3)" class="active" style="text-align: center;">3px</button>
+        <button id="w-5" onclick="setWeight(5)" style="text-align: center;">5px</button>
+        <button id="w-7" onclick="setWeight(7)" style="text-align: center;">7px</button>
+    </div>
+    <div class="grid-2">
+        <select id="font-family" onchange="updateSelectedText()" title="Tipo de Letra">
+            <option value="Arial Black">Arial Black</option>
+            <option value="Arial">Arial Standard</option>
+            <option value="Courier New">Courier (Máquina)</option>
+            <option value="Impact">Impact</option>
+        </select>
+        <select id="font-size" onchange="updateSelectedText()" title="Tamaño de Letra">
+            <option value="16">16px</option>
+            <option value="20">20px</option>
+            <option value="24" selected>24px</option>
+            <option value="32">32px</option>
+            <option value="40">40px</option>
+        </select>
+    </div>
+    
+    <h3>4. Color de Tiza / Texto</h3>
+    <div class="grid-6">
+        <div class="color-dot" style="background: white;" onclick="changeColor('white')"></div>
+        <div class="color-dot" style="background: yellow;" onclick="changeColor('yellow')"></div>
+        <div class="color-dot" style="background: #ff4444;" onclick="changeColor('#ff4444')"></div>
+        <div class="color-dot" style="background: black;" onclick="changeColor('black')"></div>
+        <div class="color-dot" style="background: #00e5ff;" onclick="changeColor('#00e5ff')"></div>
+        <input type="color" class="color-picker-input" onchange="changeColor(this.value)">
+    </div>
+
+    <h3>5. Jugadores (Fichas / Realistas)</h3>
+    <div class="grid-6">
+        <div class="color-dot" style="background:#1565c0" onclick="addPlayersMulti('#1565c0', 'circle')">AZ</div>
+        <div class="color-dot" style="background:#c62828" onclick="addPlayersMulti('#c62828', 'circle')">RO</div>
+        <div class="color-dot" style="background:#fbc02d; color:black" onclick="addPlayersMulti('#fbc02d', 'circle')">AM</div>
+        <div class="color-dot" style="background:#2e7d32" onclick="addPlayersMulti('#2e7d32', 'circle')">VE</div>
+        <div class="color-dot" style="background:#f5f5f5; color:black" onclick="addPlayersMulti('#f5f5f5', 'circle')">BL</div>
+        <input type="color" class="color-picker-input" onchange="addPlayersMulti(this.value, 'circle')">
+    </div>
+    
+    <div class="grid-6" style="margin-top: 5px;">
+        <img src="p_azul.png" class="img-player" onclick="addPlayersMulti('p_azul', 'real')" alt="AZ">
+        <img src="p_rojo.png" class="img-player" onclick="addPlayersMulti('p_rojo', 'real')" alt="RO">
+        <img src="p_amarillo.png" class="img-player" onclick="addPlayersMulti('p_amarillo', 'real')" alt="AM">
+        <img src="p_verde.png" class="img-player" onclick="addPlayersMulti('p_verde', 'real')" alt="VE">
+        <img src="p_blanco.png" class="img-player" onclick="addPlayersMulti('p_blanco', 'real')" alt="BL">
+        <img src="p_naranja.png" class="img-player" onclick="addPlayersMulti('p_naranja', 'real')" alt="NA">
+        <img src="p_negro.png" class="img-player" onclick="addPlayersMulti('p_negro', 'real')" alt="NE">
+        <img src="p_morado.png" class="img-player" onclick="addPlayersMulti('p_morado', 'real')" alt="MO">
+        <img src="p_rosa.png" class="img-player" onclick="addPlayersMulti('p_rosa', 'real')" alt="RS">
+        <img src="p_celeste.png" class="img-player" onclick="addPlayersMulti('p_celeste', 'real')" alt="CE">
+        <img src="p_gris.png" class="img-player" onclick="addPlayersMulti('p_gris', 'real')" alt="GR">
+        <img src="p_marron.png" class="img-player" onclick="addPlayersMulti('p_marron', 'real')" alt="MA">
+    </div>
+
+    <h3>6. Materiales</h3>
+    <div class="grid-2">
+        <button onclick="addIcon('cone')">⚠️ Cono</button>
+        <button onclick="addIcon('ball')">⚽ Balón</button>
+        <button onclick="addIcon('porteria')">🥅 Portería</button>
+        <button onclick="addIcon('valla')">🚧 Valla</button>
+        <button onclick="addIcon('seta')">🍄 Seta</button>
+        <button onclick="addIcon('escalera')">🪜 Escalera</button>
+        <button onclick="addIcon('pica')">📍 Pica Alta</button>
+        <button onclick="addIcon('muneco')">👤 Muñeco</button>
+        <button onclick="addIcon('aro')">⭕ Aro</button>
+        <button onclick="addIcon('saco')">🎒 Saco Bal.</button>
+    </div>
+
+    <h3>7. Capas, Agrupar y Deshacer</h3>
+    <div class="grid-2">
+        <button onclick="undo()">↩️ Deshacer</button>
+        <button onclick="redo()">↪️ Rehacer</button>
+        <button onclick="bringToFront()">⬆️ Traer Frente</button>
+        <button onclick="sendToBack()">⬇️ Enviar Fondo</button>
+        <button onclick="groupObjects()">🔗 Agrupar</button>
+        <button onclick="ungroupObjects()">🪓 Desagrupar</button>
+    </div>
+
+    <h3>8. Imagen Externa</h3>
+    <input type="file" id="image-upload" accept="image/*" style="display: none;" onchange="uploadExternalImage(event)">
+    <button onclick="document.getElementById('image-upload').click()" style="width: 100%; text-align: center; margin-bottom: 5px;">🖼️ Añadir Imagen desde PC</button>
+
+    <h3>9. Animación (Fotogramas)</h3>
+    <div class="grid-2">
+        <button onclick="saveFrame()" style="background:#6a1b9a">📸 Grabar Frame</button>
+        <button onclick="playAnimation()" style="background:#2e7d32">▶️ Reproducir</button>
+        <button onclick="clearFrames()" style="background:#444; grid-column: span 2; text-align: center;">🗑️ Borrar Frames (<span id="frame-count">0</span>)</button>
+    </div>
+    <div class="grid-2" style="margin-top: 5px;">
+        <select id="anim-speed" title="Velocidad de reproducción">
+            <option value="0.5">🐢 Vel. 0.5x</option>
+            <option value="0.75">🚶 Vel. 0.75x</option>
+            <option value="1" selected>🏃 Vel. 1x</option>
+            <option value="1.25">⚡ Vel. 1.25x</option>
+            <option value="1.5">🚀 Vel. 1.5x</option>
+        </select>
+        <button onclick="exportVideo()" style="background:#d32f2f">🎥 Exportar Video</button>
+    </div>
+
+    <h3>10. Memoria y Presentación</h3>
+    <div class="grid-2">
+        <button onclick="saveToLocal()" style="background:#1565c0">💾 Guardar Memoria</button>
+        <button onclick="loadFromLocal()" style="background:#546e7a">📂 Cargar Memoria</button>
+        <button onclick="toggleLockerRoom()" style="background:#ff8f00; grid-column: span 2; text-align: center;">📺 MODO VESTUARIO</button>
+    </div>
+
+    <button onclick="exportImage()" class="btn-export">💾 EXPORTAR IMAGEN</button>
+    <button onclick="resetCanvas()" class="btn-delete">🗑️ LIMPIAR TODO</button>
+</div>
+
+<div class="canvas-container-wrapper">
+    <button class="exit-locker" onclick="toggleLockerRoom()">❌ Salir Modo Vestuario (Esc)</button>
+    <canvas id="tacticBoard" width="800" height="600"></canvas>
+</div>
+
+<script>
+var canvas, tool = 'select', isDown, activeObj, color = 'black', strokeWidth = 3, _clipboard = null;
+var origX, origY;
+
+var stateHistory = [];
+var currentStateIndex = -1;
+var historyProcessing = false;
+var historyTimeout;
+
+var polyPoints = [];
+var polyLines = [];
+
+var frames = []; 
+
+window.onload = function() {
+    canvas = new fabric.Canvas('tacticBoard', { backgroundColor: '#2e7d32', preserveObjectStacking: true });
+
+    canvas.on('mouse:down', function(o) {
+        if (tool === 'select' || tool === 'free' || tool === 'free-arrow' || tool === 'zone-free') return;
+        var pointer = canvas.getPointer(o.e);
+
+        if (tool === 'text') {
+            var textObj = new fabric.IText('Escribe aquí', {
+                left: pointer.x, top: pointer.y, fill: color,
+                fontFamily: document.getElementById('font-family').value,
+                fontSize: parseInt(document.getElementById('font-size').value),
+            });
+            assignId(textObj); 
+            canvas.add(textObj);
+            canvas.setActiveObject(textObj);
+            textObj.enterEditing();
+            textObj.selectAll();
+            setTool('select');
+            return;
+        }
+
+        if (tool === 'polygon') {
+            polyPoints.push({x: pointer.x, y: pointer.y});
+            var isDashedPoly = document.getElementById('check-dashed').checked;
+            var line = new fabric.Line([pointer.x, pointer.y, pointer.x, pointer.y], {
+                strokeWidth: strokeWidth, fill: color, stroke: color, originX: 'center', originY: 'center', selectable: false, evented: false, strokeDashArray: isDashedPoly ? [10, 5] : null
+            });
+            polyLines.push(line);
+            canvas.add(line);
+            return; 
+        }
+
+        isDown = true;
+        origX = pointer.x;
+        origY = pointer.y;
+        var isDashed = document.getElementById('check-dashed').checked;
+        var dashArray = isDashed ? [10, 5] : null;
+
+        if (tool === 'line' || tool === 'arrow') {
+            activeObj = new fabric.Line([origX, origY, origX, origY], {
+                strokeWidth: strokeWidth, fill: color, stroke: color, originX: 'center', originY: 'center', strokeDashArray: dashArray, selectable: true
+            });
+        } else if (tool === 'rect') {
+            activeObj = new fabric.Rect({
+                left: origX, top: origY, width: 0, height: 0, fill: 'transparent', stroke: color, strokeWidth: strokeWidth, strokeDashArray: dashArray, selectable: true
+            });
+        } else if (tool === 'circle') {
+            activeObj = new fabric.Circle({
+                left: origX, top: origY, radius: 0, fill: 'transparent', stroke: color, strokeWidth: strokeWidth, strokeDashArray: dashArray, selectable: true
+            });
+        }
+        if (activeObj) { assignId(activeObj); canvas.add(activeObj); }
+    });
+
+    canvas.on('mouse:move', function(o) {
+        if (tool === 'polygon' && polyLines.length > 0) {
+            var pointerPoly = canvas.getPointer(o.e);
+            polyLines[polyLines.length - 1].set({ x2: pointerPoly.x, y2: pointerPoly.y });
+            canvas.renderAll();
+            return;
+        }
+        if (!isDown || tool === 'select' || tool === 'free' || tool === 'free-arrow' || tool === 'zone-free' || tool === 'text') return;
+        var pointer = canvas.getPointer(o.e);
+        if (tool === 'line' || tool === 'arrow') {
+            activeObj.set({ x2: pointer.x, y2: pointer.y });
+        } else if (tool === 'rect') {
+            activeObj.set({ width: Math.abs(origX - pointer.x), height: Math.abs(origY - pointer.y) });
+            if(origX > pointer.x) activeObj.set({ left: pointer.x });
+            if(origY > pointer.y) activeObj.set({ top: pointer.y });
+        } else if (tool === 'circle') {
+            var radius = Math.max(Math.abs(origX - pointer.x), Math.abs(origY - pointer.y)) / 2;
+            activeObj.set({ radius: radius });
+            if(origX > pointer.x) activeObj.set({ left: pointer.x });
+            if(origY > pointer.y) activeObj.set({ top: pointer.y });
+        }
+        canvas.renderAll();
+    });
+
+    canvas.on('mouse:up', function() {
+        if (!isDown) return;
+        isDown = false;
+        if (tool === 'arrow') addArrowHead(activeObj);
+        activeObj.setCoords();
+        canvas.renderAll();
+    });
+
+    canvas.on('path:created', function(e) {
+        assignId(e.path);
+        if (tool === 'free-arrow') {
+            var path = e.path;
+            var points = path.path;
+            var len = points.length;
+            if (len < 2) return;
+            var pLast = points[len - 1], pPrev = points[len - 2];
+            var x2 = pLast[pLast.length - 2], y2 = pLast[pLast.length - 1];
+            var x1 = (pLast[0] === 'Q') ? pLast[1] : pPrev[pPrev.length - 2];
+            var y1 = (pLast[0] === 'Q') ? pLast[2] : pPrev[pPrev.length - 1];
+            var angle = Math.atan2(y2 - y1, x2 - x1);
+            var head = new fabric.Triangle({
+                left: x2, top: y2, angle: (angle * 180 / Math.PI) + 90,
+                width: 10, height: 10, fill: color, originX: 'center', originY: 'center'
+            });
+            var group = new fabric.Group([path, head], { selectable: true });
+            assignId(group);
+            canvas.remove(path).add(group);
+        }
+        if (tool === 'zone-free') {
+            e.path.set({ fill: color, opacity: 0.4, strokeWidth: strokeWidth, stroke: color });
+            canvas.renderAll();
+            saveHistory();
+        }
+    });
+
+    canvas.on('mouse:dblclick', function(o) {
+        if (tool === 'polygon') { finishPolygon(); return; }
+        if (o.target && o.target.type === 'group') {
+            var objs = o.target.getObjects();
+            if (objs.length === 2 && objs[0].type === 'circle' && objs[1].type === 'text') {
+                var nuevoDorsal = prompt("Cambiar dorsal:", objs[1].text);
+                if (nuevoDorsal !== null) {
+                    objs[1].set({ text: nuevoDorsal });
+                    o.target.addWithUpdate();
+                    o.target.dirty = true;
+                    canvas.renderAll();
+                    saveHistory();
+                }
+            }
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (canvas.getActiveObject() && canvas.getActiveObject().isEditing) return;
+        if (tool === 'polygon' && (e.key === 'Enter' || e.key === 'Escape')) { finishPolygon(); return; }
+        if (e.key === 'Escape' && document.body.classList.contains('locker-room')) { toggleLockerRoom(); }
+
+        if (e.key === "Delete" || e.key === "Backspace") {
+            const activeObjects = canvas.getActiveObjects();
+            canvas.remove(...activeObjects);
+            canvas.discardActiveObject().renderAll();
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+            canvas.getActiveObject()?.clone(cloned => _clipboard = cloned);
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+            if (!_clipboard) return;
+            _clipboard.clone(clonedObj => {
+                canvas.discardActiveObject();
+                clonedObj.set({ left: clonedObj.left + 20, top: clonedObj.top + 20, evented: true });
+                assignId(clonedObj); 
+                if (clonedObj.type === 'activeSelection') {
+                    clonedObj.canvas = canvas;
+                    clonedObj.forEachObject(obj => { assignId(obj); canvas.add(obj); });
+                    clonedObj.setCoords();
+                } else { canvas.add(clonedObj); }
+                _clipboard.top += 20; _clipboard.left += 20;
+                canvas.setActiveObject(clonedObj).requestRenderAll();
+            });
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); }
+    });
+
+    canvas.on('object:added', saveHistory);
+    canvas.on('object:modified', saveHistory);
+    canvas.on('object:removed', saveHistory);
+    
+    setTimeout(loadFromLocal, 500); 
+    saveHistory();
+};
+
+function assignId(obj) {
+    if (!obj.customId) {
+        obj.customId = 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+}
+
+// --- CUSTOM: ANIMACIÓN Y EXPORTACIÓN MEJORADAS ---
+function saveFrame() {
+    var frameData = {};
+    canvas.getObjects().forEach(obj => {
+        if (obj.customId) {
+            frameData[obj.customId] = { left: obj.left, top: obj.top, angle: obj.angle, scaleX: obj.scaleX, scaleY: obj.scaleY };
+        }
+    });
+    frames.push(frameData);
+    document.getElementById('frame-count').innerText = frames.length;
+}
+
+function playAnimation(onCompleteCallback = null) {
+    if (frames.length < 2) return alert("Graba al menos 2 frames para animar.");
+    
+    // CUSTOM: REBOBINAR AL FRAME 1 ANTES DE EMPEZAR
+    let firstFrame = frames[0];
+    canvas.getObjects().forEach(obj => {
+        let initPos = firstFrame[obj.customId];
+        if (initPos) {
+            obj.set({ left: initPos.left, top: initPos.top, angle: initPos.angle, scaleX: initPos.scaleX, scaleY: initPos.scaleY });
+        }
+    });
+    canvas.renderAll();
+
+    let currentFrame = 0;
+    // CUSTOM: Control de velocidad. 1000ms es la base (1x). 
+    let speedMult = parseFloat(document.getElementById('anim-speed').value);
+    let durationMs = 1000 / speedMult;
+    
+    function animateToNext() {
+        if (currentFrame >= frames.length - 1) {
+            if (typeof onCompleteCallback === 'function') onCompleteCallback();
+            return;
+        }
+        
+        let nextFrameData = frames[currentFrame + 1];
+        let objects = canvas.getObjects();
+        let finishedCount = 0;
+        let totalToAnimate = objects.filter(o => nextFrameData[o.customId]).length;
+
+        if (totalToAnimate === 0) {
+            currentFrame++;
+            animateToNext();
+            return;
+        }
+
+        objects.forEach(obj => {
+            let nextPos = nextFrameData[obj.customId];
+            if (nextPos) {
+                // CUSTOM: Linear easing para que la transición no se pare entre frame y frame
+                obj.animate({ left: nextPos.left, top: nextPos.top, angle: nextPos.angle, scaleX: nextPos.scaleX, scaleY: nextPos.scaleY }, {
+                    duration: durationMs,
+                    easing: fabric.util.ease.linear,
+                    onChange: canvas.renderAll.bind(canvas),
+                    onComplete: function() {
+                        finishedCount++;
+                        if (finishedCount === totalToAnimate) {
+                            currentFrame++;
+                            // Sin "setTimeout" para que salte al siguiente frame inmediatamente, súper fluido.
+                            animateToNext(); 
+                        }
+                    }
+                });
+            }
+        });
+    }
+    animateToNext();
+}
+
+function clearFrames() {
+    frames = [];
+    document.getElementById('frame-count').innerText = "0";
+}
+
+// CUSTOM: Función para exportar el canvas como vídeo
+function exportVideo() {
+    if (frames.length < 2) return alert("Graba al menos 2 frames para poder exportar un vídeo.");
+    
+    // Capturamos el elemento nativo del canvas a 30 FPS
+    var htmlCanvas = document.getElementById('tacticBoard');
+    var stream = htmlCanvas.captureStream(30); 
+    
+    // Usamos el formato webm (nativo de navegadores)
+    var mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' }); 
+    var recordedChunks = [];
+
+    mediaRecorder.ondataavailable = function(e) {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+    };
+    
+    mediaRecorder.onstop = function() {
+        var blob = new Blob(recordedChunks, { type: 'video/webm' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'jugada_pizarra_' + Date.now() + '.webm';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    mediaRecorder.start();
+    
+    // Arrancamos la animación y al acabar cortamos la grabación
+    playAnimation(function() {
+        // Medio segundo de cortesía al final para que no se corte de golpe
+        setTimeout(() => mediaRecorder.stop(), 500);
+    });
+}
+
+// --- RESTO DE FUNCIONES ---
+function saveToLocal() {
+    var json = JSON.stringify(canvas.toJSON(['customId'])); 
+    localStorage.setItem('luichi_pizarra_save', json);
+    alert("¡Pizarra guardada en la memoria del navegador!");
+}
+
+function loadFromLocal() {
+    var json = localStorage.getItem('luichi_pizarra_save');
+    if (json) {
+        historyProcessing = true;
+        canvas.loadFromJSON(json, function() {
+            canvas.renderAll();
+            historyProcessing = false;
+        });
+    }
+}
+
+function toggleLockerRoom() {
+    document.body.classList.toggle('locker-room');
+    setTimeout(() => canvas.calcOffset(), 400); 
+}
+
+function saveHistory() {
+    if (historyProcessing) return;
+    clearTimeout(historyTimeout);
+    historyTimeout = setTimeout(function() {
+        var json = JSON.stringify(canvas.toJSON(['customId']));
+        stateHistory = stateHistory.slice(0, currentStateIndex + 1);
+        stateHistory.push(json);
+        currentStateIndex++;
+        localStorage.setItem('luichi_pizarra_save', json);
+    }, 100);
+}
+
+function undo() {
+    if (currentStateIndex > 0) {
+        historyProcessing = true;
+        currentStateIndex--;
+        canvas.loadFromJSON(stateHistory[currentStateIndex], function() { canvas.renderAll(); historyProcessing = false; });
+    }
+}
+
+function redo() {
+    if (currentStateIndex < stateHistory.length - 1) {
+        historyProcessing = true;
+        currentStateIndex++;
+        canvas.loadFromJSON(stateHistory[currentStateIndex], function() { canvas.renderAll(); historyProcessing = false; });
+    }
+}
+
+function bringToFront() { var obj = canvas.getActiveObject(); if (obj) { canvas.bringToFront(obj); canvas.renderAll(); saveHistory(); } }
+function sendToBack() { var obj = canvas.getActiveObject(); if (obj) { canvas.sendToBack(obj); canvas.renderAll(); saveHistory(); } }
+function groupObjects() {
+    var activeObj = canvas.getActiveObject();
+    if (!activeObj || activeObj.type !== 'activeSelection') return;
+    activeObj.toGroup();
+    assignId(canvas.getActiveObject());
+    canvas.requestRenderAll();
+    saveHistory();
+}
+function ungroupObjects() {
+    var activeObj = canvas.getActiveObject();
+    if (!activeObj || activeObj.type !== 'group') return;
+    activeObj.toActiveSelection();
+    canvas.requestRenderAll();
+    saveHistory();
+}
+
+function finishPolygon() {
+    if (polyPoints.length > 2) {
+        polyLines.forEach(l => canvas.remove(l));
+        var isDashed = document.getElementById('check-dashed').checked;
+        var polygon = new fabric.Polygon(polyPoints, {
+            fill: color, stroke: color, strokeWidth: strokeWidth, opacity: 0.4, selectable: true, strokeDashArray: isDashed ? [10, 5] : null
+        });
+        assignId(polygon);
+        canvas.add(polygon);
+        saveHistory();
+    } else { polyLines.forEach(l => canvas.remove(l)); }
+    polyPoints = []; polyLines = [];
+    setTool('select');
+}
+
+function uploadExternalImage(e) {
+    var file = e.target.files[0]; if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(f) {
+        fabric.Image.fromURL(f.target.result, function(img) {
+            if (img.width > 300) img.scaleToWidth(300);
+            assignId(img);
+            canvas.add(img).centerObject(img);
+            setTool('select');
+            saveHistory();
+        });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+}
+
+function setTool(t) {
+    if (tool === 'polygon' && t !== 'polygon') { polyLines.forEach(l => canvas.remove(l)); polyPoints = []; polyLines = []; canvas.renderAll(); }
+    tool = t;
+    canvas.isDrawingMode = (t === 'free' || t === 'free-arrow' || t === 'zone-free');
+    canvas.selection = (t === 'select');
+    if(canvas.isDrawingMode) {
+        canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+        canvas.freeDrawingBrush.color = color;
+        canvas.freeDrawingBrush.width = strokeWidth;
+        if(document.getElementById('check-dashed').checked) canvas.freeDrawingBrush.strokeDashArray = [10, 5];
+    }
+    document.querySelectorAll('.toolbar button').forEach(b => b.id?.startsWith('btn-') && b.classList.remove('active'));
+    document.getElementById('btn-' + t)?.classList.add('active');
+}
+
+function setWeight(w) { strokeWidth = w; if(canvas.isDrawingMode) canvas.freeDrawingBrush.width = w; document.querySelectorAll('[id^="w-"]').forEach(b => b.classList.remove('active')); document.getElementById('w-' + w).classList.add('active'); }
+function updateSelectedText() { var activeObj = canvas.getActiveObject(); if (activeObj && activeObj.type === 'i-text') { activeObj.set({ fontFamily: document.getElementById('font-family').value, fontSize: parseInt(document.getElementById('font-size').value) }); canvas.renderAll(); saveHistory(); } }
+function changeColor(c) { color = c; if(canvas.isDrawingMode) canvas.freeDrawingBrush.color = c; var activeObj = canvas.getActiveObject(); if (activeObj && activeObj.type === 'i-text') { activeObj.set({ fill: c }); canvas.renderAll(); saveHistory(); } }
+
+function addArrowHead(l) {
+    var angle = Math.atan2(l.y2 - l.y1, l.x2 - l.x1);
+    var head = new fabric.Triangle({ left: l.x2, top: l.y2, angle: (angle * 180 / Math.PI) + 90, width: 10, height: 10, fill: color, originX: 'center', originY: 'center' });
+    var group = new fabric.Group([l, head], { selectable: true });
+    assignId(group);
+    canvas.remove(l).add(group);
+}
+
+function addPlayersMulti(val, type) {
+    var countStr = prompt("¿Cuántos jugadores?", "1");
+    if (countStr === null || isNaN(countStr) || countStr <= 0) return;
+    var count = parseInt(countStr);
+    const processInsertion = (imgObj, isReal) => {
+        for(let i=1; i<=count; i++) {
+            let x = 50 + (i * 25), y = 50 + (i * 25);
+            if (isReal) { imgObj.clone(function(clonedImg) { assignId(clonedImg); createRealPlayer(clonedImg, x, y); }); } 
+            else { 
+                let d = count === 1 ? prompt("Dorsal:", "1") : i.toString();
+                createCirclePlayerGroup(val, d, x, y); 
+            }
+        }
+        setTool('select');
+    };
+    if (type === 'real') { fabric.Image.fromURL(val + '.png', (img, err) => { if (err) return alert("Error"); processInsertion(img, true); }); } 
+    else { processInsertion(null, false); }
+}
+
+function createCirclePlayerGroup(c, dorsal, posX, posY) {
+    var circle = new fabric.Circle({ radius: 10, fill: c, stroke: 'white', strokeWidth: 1.5, originX: 'center', originY: 'center' });
+    var textColor = (c === '#f5f5f5' || c === 'white') ? 'black' : 'white';
+    var text = new fabric.Text(dorsal, { fontSize: 12, fill: textColor, originX: 'center', originY: 'center', fontWeight: 'bold', fontFamily: 'Arial' });
+    var group = new fabric.Group([circle, text], { left: posX, top: posY });
+    assignId(group);
+    canvas.add(group);
+}
+
+function createRealPlayer(img, posX, posY) { img.scale(0.36); img.set({ left: posX, top: posY, originX: 'center', originY: 'center' }); canvas.add(img); }
+
+function addIcon(name) {
+    fabric.Image.fromURL(name + '.png', (img, err) => {
+        if (err) return alert("Error");
+        let sf = 0.12; if (name === 'porteria') sf = 0.36; else if (['escalera','pica','muneco','saco'].includes(name)) sf = 0.24;
+        img.scale(sf); assignId(img); canvas.add(img).centerObject(img); setTool('select');
+    });
+}
+
+function updateBg(t) {
+    if (!t) return;
+    const bgMap = { 'full': 'campo_entero.jpg', 'half': 'medio_campo.jpg', 'noline': 'campo_sin_lineas.jpg', 'f7': 'futbol7.jpg' };
+    fabric.Image.fromURL(bgMap[t], img => {
+        canvas.setBackgroundImage(img, function() { canvas.renderAll(); saveHistory(); }, { scaleX: canvas.width / img.width, scaleY: canvas.height / img.height });
+    });
+}
+
+function resetCanvas() { if(confirm("¿Borrar todo?")) { canvas.clear().setBackgroundColor('#2e7d32', function() { canvas.renderAll(); saveHistory(); }); } }
+function exportImage() { try { var link = document.createElement('a'); link.download = 'pizarra_luichi_' + Date.now() + '.jpeg'; link.href = canvas.toDataURL({ format: 'jpeg', quality: 0.6 }); link.click(); } catch (e) { alert("Error CORS"); } }
+</script>
+</body>
+</html>

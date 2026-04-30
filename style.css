@@ -1,0 +1,222 @@
+/* ===========================
+   TIPOGRAFÍAS Y ESTILOS BASE
+   =========================== */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Montserrat:wght@300;400;700&display=swap');
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Poppins", sans-serif;
+    background: linear-gradient(120deg, #0d1b3d, #12295c);
+    color: white;
+}
+
+/* ===========================
+   HEADER PRINCIPAL
+   =========================== */
+header {
+    width: 100%;
+    text-align: center;
+    padding: 90px 20px;
+    background: linear-gradient(135deg, #0d1b3d, #12295c, #0a1a33);
+    color: white;
+    box-shadow: 0 0 25px rgba(0, 40, 150, 0.6);
+    border-bottom: 3px solid rgba(255, 255, 255, 0.15);
+    position: relative;
+}
+
+header h1 {
+    font-family: "Montserrat", sans-serif;
+    font-size: 55px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    text-shadow: 
+        0 0 12px rgba(120, 170, 255, 0.8),
+        0 0 25px rgba(0, 80, 255, 0.6),
+        0 0 40px rgba(0, 40, 150, 0.6);
+}
+
+header p {
+    margin-top: 18px;
+    font-size: 22px;
+    font-family: "Poppins", sans-serif;
+    max-width: 850px;
+    margin-left: auto;
+    margin-right: auto;
+    opacity: 0.95;
+    line-height: 1.6;
+    color: #c6ddff;
+}
+
+/* ===========================
+   NAVBAR
+   =========================== */
+nav {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(6px);
+    padding: 15px 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+nav ul {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    list-style: none;
+    padding: 0;
+}
+
+nav a {
+    text-decoration: none;
+    color: #9ec7ff;
+    font-size: 18px;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+nav a:hover {
+    color: #ffffff;
+    text-shadow: 0 0 10px #78a6ff;
+}
+
+/* ===========================
+   SECCIONES
+   =========================== */
+section {
+    max-width: 1100px;
+    margin: 80px auto;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(6px);
+    border-radius: 20px;
+    box-shadow: 0 0 20px rgba(0, 40, 150, 0.4);
+}
+
+section h2 {
+    font-family: "Montserrat", sans-serif;
+    font-size: 32px;
+    color: #79b7ff;
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px #003cff;
+}
+
+/* ===========================
+   IMÁGENES GENERALES
+   =========================== */
+img {
+    max-width: 100%;
+    border-radius: 16px;
+    box-shadow: 0 5px 15px rgba(0, 40, 150, 0.4);
+    transition: transform 0.3s;
+}
+
+img:hover {
+    transform: scale(1.03);
+}
+
+/* ===========================
+   TABLA DE ESTADIOS
+   =========================== */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 25px;
+    overflow: hidden;
+    border-radius: 14px;
+}
+
+table th {
+    background: #003c99;
+    color: white;
+    padding: 15px;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+table td {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 15px;
+    text-align: center;
+}
+
+table tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.stadium-img {
+    width: 320px;
+    border-radius: 12px;
+}
+
+/* ===========================
+   MERCHANDISING
+   =========================== */
+.merch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 25px;
+    margin-top: 25px;
+}
+
+.merch-item {
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 20px;
+    text-align: center;
+    transition: 0.3s;
+}
+
+.merch-item:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 0 20px rgba(0, 100, 255, 0.5);
+}
+
+/* ===========================
+   VIDEO ESTILOS
+   =========================== */
+iframe {
+    width: 100%;
+    height: 420px;
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 0 20px rgba(0, 40, 150, 0.4);
+}
+
+/* ===========================
+   CONTACTO
+   =========================== */
+.contact-box {
+    background: rgba(255, 255, 255, 0.07);
+    padding: 25px;
+    border-radius: 20px;
+    max-width: 500px;
+    margin: auto;
+    text-align: center;
+    font-size: 20px;
+}
+
+.contact-box a {
+    color: #79b7ff;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.contact-box a:hover {
+    text-shadow: 0 0 10px #79b7ff;
+}
+
+/* ===========================
+   FOOTER
+   =========================== */
+footer {
+    text-align: center;
+    padding: 25px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(6px);
+    margin-top: 40px;
+    color: #9ec7ff;
+}

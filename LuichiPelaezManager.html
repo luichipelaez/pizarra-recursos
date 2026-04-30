@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Luichi Peláez</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #e63946;
+            --bg-dark: #000000;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-dark);
+            color: white;
+            overflow: hidden;
+        }
+
+        /* --- CABECERA EN UNA SOLA LÍNEA --- */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Centra todo el conjunto */
+            gap: 30px;               /* Espacio entre nombre y botones */
+            padding: 0 15px;
+            height: 50px;            /* Altura mínima récord */
+            background: var(--bg-dark);
+            border-bottom: 1px solid #333;
+        }
+
+        .brand-container {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+        }
+
+        .coach-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            margin: 0;
+            color: white;
+            text-shadow: 1px 1px var(--primary-color);
+            white-space: nowrap;
+        }
+
+        .team-name {
+            font-size: 0.75rem;
+            color: #ffd700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            font-weight: bold;
+        }
+
+        /* --- BOTONES COMPACTOS --- */
+        nav {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #bbb;
+            padding: 4px 12px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .btn:hover, .btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* --- CONTENEDOR TOTAL --- */
+        .content-area {
+            width: 100%;
+            height: calc(100vh - 51px); /* Resta exactamente la altura del header + borde */
+            border: none;
+            background: white;
+        }
+
+        /* Responsive: si la pantalla es muy estrecha, permitimos que baje de línea */
+        @media (max-width: 850px) {
+            header {
+                flex-direction: column;
+                height: auto;
+                padding: 10px 0;
+                gap: 10px;
+            }
+            .content-area { height: calc(100vh - 100px); }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand-container">
+        <h1 class="coach-name">LUICHI PELAEZ</h1>
+        <span class="team-name">EQUIPO DE EJEMPLO F.C.</span>
+    </div>
+
+    <nav>
+        <a href="https://script.google.com/macros/s/AKfycbzJXKgmzeQJMcWxdyz1e2p12tyBRd28XomgPAVjZXGmU8fegm_Tb2ESWe847Zt0sCnr/exec" 
+           class="btn" target="main-frame" onclick="setActive(this)">TEMPORADA</a>
+        
+        <a href="http://luispelaez.atwebpages.com/pizarra.html" 
+           class="btn" target="main-frame" onclick="setActive(this)">PIZARRA</a>
+        
+        <a href="https://www.lapreferente.com/C22272-1/segunda-federacion-grupo-4" 
+           class="btn" target="main-frame" onclick="setActive(this)">RESULTADOS</a>
+    </nav>
+</header>
+
+<iframe name="main-frame" src="about:blank" class="content-area"></iframe>
+
+<script>
+    function setActive(element) {
+        const buttons = document.querySelectorAll('.btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        element.classList.add('active');
+    }
+
+    // Carga inicial
+    window.onload = () => {
+        document.querySelector('.btn').click();
+    };
+</script>
+
+</body>
+</html>
